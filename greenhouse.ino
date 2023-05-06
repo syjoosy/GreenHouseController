@@ -9,30 +9,66 @@ LiquidCrystal_I2C lcd(0x27,20,4);
 // BME280
 //
 
-#include <GyverBME280.h>                      
-GyverBME280 bme;                              
+//#include <GyverBME280.h>                      
+//GyverBME280 bme;                              
 
 //
 // DS3231
 //
 
-#include <microDS3231.h>
-MicroDS3231 rtc;
+//#include <microDS3231.h>
+//MicroDS3231 rtc;
 
 //
 // BUTTON
 //
+
+typedef struct { 
+  String name;
+  bool state;
+} Dictionary;
 
 #define UP_BTN    13
 #define DOWN_BTN  12
 #define OK_BTN    14
 #define BACK_BTN  27
 
-String mainMenu[3] = {"Light", "Window", "Settings"};
-String lightMenu[3] = {"Light1", "Light2", "Light3"};
+typedef struct 
+{
+  int percent1;
+  int percent2;
+  int percent3;
+  int percent4;
+  int percent5;
+  int percent6;
+  int percent7;
+  int percent8; 
+} Soil;
+
+
+String mainMenu[4] = {"Soil", 
+                      "Window", 
+                      "Statistics", 
+                      "Settings"};
+
+// const Dictionary test[] {
+//     {"Soil", {"SOIL1", "SOIL2"}}
+//     {"Window", "SPANISH", "Ajustes"},
+//     {"Light", "FRENCH", "Paramètres"},
+//     {"Light", "FRENCH", "Paramètres"}
+// };
+
+Dictionary windows[]
+{
+  {"Window1", true},
+  {"Window2", false}
+};
+//Dictionary<String, String> MyDict;
+
+String statisticsMenu[3] = {"Statistic1", "Statistic2", "Statistic3"};
 String windowMenu[3] = {"Window1", "Window2", "Window3"};
 String settingsMenu[3] = {"StandBy", "Settings2", "Settings3"};
- 
+String soilMenu[8] = {"15", "27", "55", "71","49", "54","34", "82"};
 
 int pointer = 0;
 
@@ -46,16 +82,17 @@ void setup() {
   lcd.print("GREENHOUSE");
   lcd.setCursor(16,3);
   lcd.print("v0.1");
-  delay(2000);
+  //delay(2000);
   loadClock();
   bool error = false;
-  if (!bme.begin() || !rtc.begin())
-  {
-    printDiagnostic();
-  }
+
+  //if (!bme.begin() || !rtc.begin())
+  //{
+  //  printDiagnostic();
+  //}
 
   //rtc.begin();
-  delay(2000); 
+  //delay(2000); 
   lcd.clear ();
   
   pinMode(UP_BTN, INPUT);
@@ -65,41 +102,42 @@ void setup() {
 
 }
 
-void printDiagnostic()
-{
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  if (bme.begin())
-    lcd.print("BME280 - OK");
-  else
-    lcd.print("BME280 - ERROR");
-  lcd.setCursor(0, 1);
-  if (rtc.begin())
-    lcd.print("DS3231 - OK");
-  else
-    lcd.print("DS3231 - ERROR");
+// void printDiagnostic()
+// {
+//   lcd.clear();
+//   lcd.setCursor(0, 0);
+//   if (bme.begin())
+//     lcd.print("BME280 - OK");
+//   else
+//     lcd.print("BME280 - ERROR");
+//   lcd.setCursor(0, 1);
+//   if (rtc.begin())
+//     lcd.print("DS3231 - OK");
+//   else
+//     lcd.print("DS3231 - ERROR");
+// }
 
-  
-  
-}
-
-int standByPeriod = 10000; // время через которое появится экран ожидания в мс
+int standByPeriod = 60000; // время через которое появится экран ожидания в мс
 uint32_t standByTimer;         // переменная таймера
 
 boolean displayStandBy = false;
 uint32_t updateValuesTimer;         // переменная таймера
 int updatePeriod = 2000; // время через которое появится экран ожидания в мс
 
-String temperature = "";
-String humidity = "";
+String temperature = "35.2";
+String humidity = "49.7";
+
+int hours = 15;
+int minutes = 23;
+
 
 void loop() 
 {
   keyboardLogic();
   ScreenLogic();
-  
-
 }
+
+String path = "";
 
 void ScreenLogic()
 {
@@ -114,7 +152,7 @@ void ScreenLogic()
     if (millis() - updateValuesTimer >= updatePeriod) 
     {
       updateValuesTimer = millis();
-      GetBmeValues();
+      //GetBmeValues();
       drawStandby();
     }
   }
@@ -126,11 +164,13 @@ void ScreenLogic()
       displayStandBy = false;
     }
     menuLogic();
-    if (millis() - updateValuesTimer >= updatePeriod) 
+    if (millis() - updateValuesTimer >= updatePeriod && path == "") 
     {
       updateValuesTimer = millis();
       DrawTime();
       DrawBmeValues();
+      lcd.setCursor(17, 3);
+      lcd.print("   ");
     }
   }
 }
@@ -142,7 +182,7 @@ boolean okButton = false;
 boolean backButton = false;
 
 int menuPointer = 0;
-String path = "";
+
 void menuLogic()
 {
   if (okButton)
@@ -152,15 +192,20 @@ void menuLogic()
       case 0:
         path.concat(0);
         pointer = 0;
-        drawMenu(lightMenu, sizeof(lightMenu));
+        drawSoil();
         break;
       case 1:
         path.concat(1);
         pointer = 0;
-        drawMenu(windowMenu, sizeof(windowMenu));
+        drawWindow();
         break;
       case 2:
         path.concat(2);
+        pointer = 0;
+        drawMenu(statisticsMenu, sizeof(statisticsMenu));
+        break;
+      case 3:
+        path.concat(3);
         pointer = 0;
         drawMenu(settingsMenu, sizeof(settingsMenu));
         break;
@@ -186,7 +231,7 @@ void menuLogic()
   else if (pointerChange)
   {
     if (path == "0")
-        drawMenu(lightMenu, sizeof(lightMenu));
+        drawMenu(statisticsMenu, sizeof(statisticsMenu));
     else if (path == "1")
         drawMenu(windowMenu, sizeof(windowMenu));
     else if (path == "2")
@@ -228,8 +273,62 @@ void drawStandby()
   }
 }
 
+void clearDisplay()
+{
+  for (int i = 0; i < 4; i++)
+  {
+    lcd.setCursor(0, i);
+    lcd.print("                    ");
+  }
+}
+
+void drawWindow()
+{
+  clearDisplay();
+  for (int i = 0; i < 2; i++)
+  {
+    lcd.setCursor(0, i);
+    lcd.print("                    ");
+    lcd.setCursor(0, i);
+    lcd.print(windows[i].name);
+    lcd.print(" - ");
+    if (windows[i].state) 
+      lcd.print("OPEN");
+    else
+      lcd.print("CLOSED");
+  }
+}
+
+void drawSoil()
+{
+  
+  for (int i = 0; i < 8; i++)
+  {
+    
+    if (i < 4)
+    {
+      lcd.setCursor(0, i);
+      lcd.print("                    ");
+      lcd.setCursor(0, i);
+      lcd.print(soilMenu[i]);
+      lcd.print("%");
+    }
+    else
+    {
+      lcd.setCursor(17, i-4);
+      lcd.print(soilMenu[i]);
+      lcd.print("%");
+    }
+  }
+      lcd.setCursor(8, 0);
+    lcd.print("SOIL");
+    lcd.setCursor(6, 3);
+    lcd.print("HUMIDITY");
+}
+
 void drawMenu(String *menu, int size)
 {
+  //clearDisplay();
   size = size / sizeof(String);
   if (pointerChange || okButton)
   {
@@ -460,38 +559,45 @@ void loadClock() {
 
 void DrawTime()
 {
+  //GetTime();
   lcd.setCursor(15, 0);
-  if (rtc.getHours() < 10)
+  if (hours < 10)
   {
     lcd.print(0);
-    lcd.print(rtc.getHours());
+    lcd.print(hours);
   }
   else
   {
-    lcd.print(rtc.getHours());
+    lcd.print(hours);
   }
     lcd.print(":");
 
-  if (rtc.getMinutes() < 10)
+  if (minutes < 10)
   {
     lcd.print(0);
-    lcd.print(rtc.getMinutes());
+    lcd.print(minutes);
   }
   else
   {
-    lcd.print(rtc.getMinutes());
+    lcd.print(minutes);
   }
 }
 
-void GetBmeValues()
-{
-  temperature = String(bme.readTemperature(), 1);
-  humidity = String(bme.readHumidity(), 1);
-}
+// void GetTime()
+// {
+//   hours = rtc.getHours();
+//   minutes = rtc.getMinutes();
+// }
+
+// void GetBmeValues()
+// {
+//   temperature = String(bme.readTemperature(), 1);
+//   humidity = String(bme.readHumidity(), 1);
+// }
 
 void DrawBmeValues()
 {
-  GetBmeValues();
+  //GetBmeValues();
   lcd.setCursor(15, 1);
   lcd.print(temperature);
   lcd.print(char(223));
