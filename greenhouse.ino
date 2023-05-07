@@ -231,10 +231,12 @@ void menuLogic()
   else if (pointerChange)
   {
     if (path == "0")
-        drawMenu(statisticsMenu, sizeof(statisticsMenu));
+        drawSoil();
     else if (path == "1")
-        drawMenu(windowMenu, sizeof(windowMenu));
+        drawWindow();
     else if (path == "2")
+        drawMenu(statisticsMenu, sizeof(statisticsMenu));
+    else if (path == "3")
         drawMenu(settingsMenu, sizeof(settingsMenu));
     
   }
@@ -297,6 +299,7 @@ void drawWindow()
     else
       lcd.print("CLOSED");
   }
+  pointerChange = false;
 }
 
 void drawSoil()
@@ -324,14 +327,16 @@ void drawSoil()
     lcd.print("SOIL");
     lcd.setCursor(6, 3);
     lcd.print("HUMIDITY");
+    pointerChange = false;
 }
 
 void drawMenu(String *menu, int size)
 {
-  //clearDisplay();
+  
   size = size / sizeof(String);
   if (pointerChange || okButton)
   {
+  clearDisplay();
   for (int i = 0; i < size; i++)
   {
     lcd.setCursor(0, i);
