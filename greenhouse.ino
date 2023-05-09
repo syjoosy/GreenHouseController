@@ -28,6 +28,13 @@ typedef struct {
   bool state;
 } Dictionary;
 
+typedef struct { 
+  bool state;
+  String temperature;
+  String humidity;
+  String time;
+} WindowInfo;
+
 #define UP_BTN    13
 #define DOWN_BTN  12
 #define OK_BTN    14
@@ -47,7 +54,7 @@ typedef struct
 
 
 String mainMenu[4] = {"Soil", 
-                      "Window", 
+                      "Windows", 
                       "Statistics", 
                       "Settings"};
 
@@ -62,6 +69,12 @@ Dictionary windows[]
 {
   {"Window1", true},
   {"Window2", false}
+};
+
+WindowInfo windowInfo[]
+{
+  {true, "20<T<45", "15<H<40", "08:00<T<20:00"},
+  {false, "20<T<45", "15<H<40", "10:00<T<15:00"}
 };
 //Dictionary<String, String> MyDict;
 
@@ -138,9 +151,10 @@ void loop()
 }
 
 String path = "";
-
+bool drawWindowState = false;
 void ScreenLogic()
 {
+  //Serial.println(path);
   if (millis() - standByTimer >= standByPeriod) 
   {
     //standByTimer = millis();
@@ -185,7 +199,7 @@ int menuPointer = 0;
 
 void menuLogic()
 {
-  if (okButton)
+  if (okButton && path == "")
   {
     switch (pointer)
     {
@@ -209,12 +223,29 @@ void menuLogic()
         pointer = 0;
         drawMenu(settingsMenu, sizeof(settingsMenu));
         break;
-    }
-
+    } 
     menuPointer++;
     okButton = false;
 
+  }
+  if (okButton && path == "1")
+  {
+    drawWindowState = true;
+    okButton = false;
+    backButton = false;
+  }
+  if (drawWindowState && pointerChange)
+  {
+    menuPointer++;
+    if (path.length() != 2)
+      path.concat(pointer);
+    //pointer = 0;
+    //Serial.println("DRAW WINDOW");
+    DrawWindowInfo(path);
+    pointerChange = false;
+    //drawWindowState = false;
   } 
+
   if (backButton)
   {
     path.remove(path.length() - 1);
@@ -222,6 +253,8 @@ void menuLogic()
     menuPointer--;
     if (menuPointer < 0)
       menuPointer = 0;
+    if (drawWindowState)
+      drawWindowState = false;
     backButton = false;
   }
   if (menuPointer == 0)
@@ -243,6 +276,66 @@ void menuLogic()
   //Serial.println(path);
 }
 
+int windowPointer = 0;
+void DrawWindowInfo(String path)
+{
+  Serial.print("PATH: ");
+  Serial.print(path);
+  Serial.print(" LENGTH: ");
+  Serial.print(path.length());
+
+  windowPointer = path[path.length() - 1] - 48; // char to int
+  Serial.print(" WIN POINTER: ");
+  Serial.println(windowPointer);
+  
+  Serial.print(" POINTER: ");
+  Serial.println(pointer);
+  clearDisplay();
+  lcd.setCursor(0,0);
+  if (pointer == 0)
+  {
+    lcd.print("<");
+    lcd.print(windowInfo[windowPointer].state);
+    lcd.print(">");
+  }
+  else
+  {
+    lcd.print(windowInfo[windowPointer].state);
+  }
+  lcd.setCursor(0,1);
+  if (pointer == 1)
+  {
+    lcd.print("<");
+    lcd.print(windowInfo[windowPointer].temperature);
+    lcd.print(">");
+  }
+  else
+  {
+    lcd.print(windowInfo[windowPointer].temperature);
+  }
+  lcd.setCursor(0,2);
+  if (pointer == 2)
+  {
+    lcd.print("<");
+    lcd.print(windowInfo[windowPointer].humidity);
+    lcd.print(">");
+  }
+  else
+  {
+    lcd.print(windowInfo[windowPointer].humidity);
+  }
+  lcd.setCursor(0,3);
+  if (pointer == 3)
+  {
+    lcd.print("<");
+    lcd.print(windowInfo[windowPointer].time);
+    lcd.print(">");
+  }
+  else
+  {
+    lcd.print(windowInfo[windowPointer].time);
+  }
+}
 
 boolean standByWithSecons = false;
 void drawStandby()
@@ -284,6 +377,7 @@ void clearDisplay()
   }
 }
 
+
 void drawWindow()
 {
   clearDisplay();
@@ -292,22 +386,25 @@ void drawWindow()
     lcd.setCursor(0, i);
     lcd.print("                    ");
     lcd.setCursor(0, i);
+    if (pointer == i)
+      lcd.print("<");
     lcd.print(windows[i].name);
     lcd.print(" - ");
     if (windows[i].state) 
       lcd.print("OPEN");
     else
       lcd.print("CLOSED");
+    
+    if (pointer == i)
+      lcd.print(">");
   }
   pointerChange = false;
 }
 
 void drawSoil()
 {
-  
   for (int i = 0; i < 8; i++)
-  {
-    
+  { 
     if (i < 4)
     {
       lcd.setCursor(0, i);
@@ -377,6 +474,7 @@ void keyboardLogic()
   {
     okButton = true;
     standByTimer = millis();
+    pointerChange = true;
   }
   if (digitalRead(BACK_BTN))
   {
