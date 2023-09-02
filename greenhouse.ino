@@ -1,6 +1,7 @@
 //
 // LCD
 //
+
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27,20,4);  
@@ -9,8 +10,8 @@ LiquidCrystal_I2C lcd(0x27,20,4);
 // BME280
 //
 
-//#include <GyverBME280.h>                      
-//GyverBME280 bme;                              
+#include <GyverBME280.h>                      
+GyverBME280 bme;                              
 
 //
 // DS3231
@@ -35,10 +36,10 @@ typedef struct {
   String time;
 } WindowInfo;
 
-#define UP_BTN    13
-#define DOWN_BTN  12
+#define UP_BTN    32
+#define DOWN_BTN  33
 #define OK_BTN    14
-#define BACK_BTN  27
+#define BACK_BTN  12
 
 typedef struct 
 {
@@ -93,9 +94,11 @@ void setup() {
   lcd.backlight();
   lcd.setCursor(5,1);
   lcd.print("GREENHOUSE");
+  lcd.setCursor(3,2);
+  lcd.print("Vadim Nikolaev");
   lcd.setCursor(16,3);
   lcd.print("v0.1");
-  //delay(2000);
+  delay(5000);
   loadClock();
   bool error = false;
 
@@ -104,14 +107,15 @@ void setup() {
   //  printDiagnostic();
   //}
 
+  bme.begin();
   //rtc.begin();
   //delay(2000); 
   lcd.clear ();
   
-  pinMode(UP_BTN, INPUT);
-  pinMode(DOWN_BTN, INPUT);
-  pinMode(OK_BTN, INPUT);
-  pinMode(BACK_BTN, INPUT);
+  pinMode(UP_BTN, INPUT_PULLDOWN);
+  pinMode(DOWN_BTN, INPUT_PULLDOWN);
+  pinMode(OK_BTN, INPUT_PULLDOWN);
+  pinMode(BACK_BTN, INPUT_PULLDOWN);
 
 }
 
@@ -166,7 +170,7 @@ void ScreenLogic()
     if (millis() - updateValuesTimer >= updatePeriod) 
     {
       updateValuesTimer = millis();
-      //GetBmeValues();
+      GetBmeValues();
       drawStandby();
     }
   }
@@ -370,11 +374,17 @@ void drawStandby()
 
 void clearDisplay()
 {
-  for (int i = 0; i < 4; i++)
-  {
-    lcd.setCursor(0, i);
-    lcd.print("                    ");
-  }
+  //for (int i = 0; i < 4; i++)
+  //{
+  lcd.setCursor(0, 0);
+  lcd.print("              ");
+  lcd.setCursor(0, 1);
+  lcd.print("              ");
+  lcd.setCursor(0, 2);
+  lcd.print("              ");
+  lcd.setCursor(0, 3);
+  lcd.print("              ");
+  //}
 }
 
 
@@ -692,15 +702,15 @@ void DrawTime()
 //   minutes = rtc.getMinutes();
 // }
 
-// void GetBmeValues()
-// {
-//   temperature = String(bme.readTemperature(), 1);
-//   humidity = String(bme.readHumidity(), 1);
-// }
+void GetBmeValues()
+{
+   temperature = String(bme.readTemperature(), 1);
+   humidity = String(bme.readHumidity(), 1);
+}
 
 void DrawBmeValues()
 {
-  //GetBmeValues();
+  GetBmeValues();
   lcd.setCursor(15, 1);
   lcd.print(temperature);
   lcd.print(char(223));
